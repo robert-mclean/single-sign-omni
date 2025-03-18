@@ -1,0 +1,298 @@
+// package com.singlesignomni.api.service;
+
+// import net.shibboleth.utilities.java.support.codec.Base64Support;
+// import net.shibboleth.utilities.java.support.xml.SerializeSupport;
+
+// import org.apache.tomcat.util.security.KeyStoreUtil;
+// import org.joda.time.DateTime;
+// import org.joda.time.DateTimeZone;
+// import org.opensaml.core.xml.XMLObject;
+// import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
+// import org.opensaml.core.xml.io.MarshallingException;
+// import org.opensaml.core.xml.io.Marshaller;
+// import org.opensaml.core.xml.io.MarshallerFactory;
+// import org.opensaml.core.xml.schema.XSString;
+// import org.opensaml.core.xml.schema.impl.XSStringBuilder;
+// import org.opensaml.core.xml.util.XMLObjectSupport;
+// import org.opensaml.messaging.encoder.MessageEncodingException;
+// import org.opensaml.saml.common.SAMLVersion;
+// import org.opensaml.saml.common.SignableSAMLObject;
+// import org.opensaml.saml.saml2.core.*;
+// import org.opensaml.saml.saml2.core.impl.*;
+// import org.opensaml.saml.saml2.binding.encoding.impl.HTTPPostEncoder;
+// import org.opensaml.security.credential.Credential;
+// import org.opensaml.security.x509.BasicX509Credential;
+// import org.opensaml.xmlsec.signature.support.SignatureConstants;
+// import org.opensaml.xmlsec.signature.impl.SignatureBuilder;
+// import org.opensaml.xmlsec.signature.Signature;
+// import org.opensaml.xmlsec.signature.support.Signer;
+// import org.opensaml.saml.saml2.binding.encoding.impl.HTTPRedirectDeflateEncoder;
+// import org.springframework.stereotype.Service;
+// import org.w3c.dom.Element;
+// import org.w3c.dom.Document;
+
+// import java.util.UUID;
+
+// import javax.xml.parsers.DocumentBuilder;
+// import javax.xml.parsers.DocumentBuilderFactory;
+// import javax.xml.transform.TransformerFactory;
+// import javax.xml.transform.dom.DOMSource;
+// import javax.xml.transform.stream.StreamResult;
+
+// import java.io.FileInputStream;
+// import java.io.IOException;
+// import java.io.OutputStream;
+// import java.io.StringWriter;
+// import java.nio.charset.StandardCharsets;
+// import java.io.ByteArrayInputStream;
+// import java.io.ByteArrayOutputStream;
+// import java.security.KeyStore;
+// import java.security.PrivateKey;
+// import java.security.cert.X509Certificate;
+// import java.util.Base64;
+// import java.util.zip.Deflater;
+// import java.util.zip.DeflaterOutputStream;
+
+// @Service
+// public class SamlResponseGenerator {
+//     public String generate(Arguments args) throws Exception {
+//         Response response = buildSAMLResponse(args);
+//         return encodeResponse(response);
+//     }
+
+//     private Response buildSAMLResponse(Arguments args) throws Exception {
+//         Response response = new ResponseBuilder().buildObject();
+//         // response.setID(UUID.randomUUID().toString().replaceAll("-", ""));
+//         response.setID("asdf");
+//         response.setIssueInstant(DateTime.now(DateTimeZone.UTC));
+//         response.setIssuer(buildIssuer(args.idpEntityId));
+//         response.setVersion(SAMLVersion.VERSION_20);
+//         response.setDestination(args.assertionConsumerUrl);
+//         response.getAssertions().add(buildAssertion(args.spEntityId, args.nameIdValue, args.idpEntityId, args.attributes));
+//         response.setStatus(buildStatus());
+
+//         signSAMLObject(response);
+
+//         return response;
+//     }
+
+//     private Status buildStatus() {
+//         StatusCode code = new StatusCodeBuilder().buildObject();
+//         code.setValue(StatusCode.SUCCESS);
+        
+//         Status status = new StatusBuilder().buildObject();
+//         status.setStatusCode(code);
+
+//         return status;
+//     }
+
+//     private Assertion buildAssertion(String spEntityId, String nameIdValue, String idpEntityId, AttributeArgument[] attributeArguments) {
+//         Assertion assertion = new AssertionBuilder().buildObject();
+//         // assertion.setID(UUID.randomUUID().toString().replaceAll("-", ""));
+//         assertion.setID("asdfassertion");
+//         assertion.setIssueInstant(DateTime.now(DateTimeZone.UTC));
+//         assertion.setIssuer(buildIssuer(idpEntityId));
+//         assertion.setSubject(buildSubject(spEntityId, nameIdValue));
+//         assertion.setVersion(SAMLVersion.VERSION_20);
+//         assertion.setConditions(buildConditions(spEntityId));
+//         assertion.getAttributeStatements().add(buildAttributeStatement(nameIdValue, attributeArguments));
+//         assertion.getAuthnStatements().add(buildAuthnStatement());
+
+//         return assertion;
+//     }
+
+//     private Issuer buildIssuer(String idpEntityId) {
+//         Issuer issuer = new IssuerBuilder().buildObject();
+//         issuer.setValue(idpEntityId);
+//         return issuer;
+//     }
+
+//     private Subject buildSubject(String spEntityId, String nameIdValue) {
+//         NameID nameID = new NameIDBuilder().buildObject();
+//         nameID.setValue(nameIdValue);
+//         nameID.setFormat(NameID.UNSPECIFIED); // TODO: Make configurable?
+
+//         SubjectConfirmationData subjectConfirmationData = new SubjectConfirmationDataBuilder().buildObject();
+//         subjectConfirmationData.setNotOnOrAfter(DateTime.now(DateTimeZone.UTC).plusSeconds(300));
+//         subjectConfirmationData.setRecipient(spEntityId);
+
+//         SubjectConfirmation subjectConfirmation = new SubjectConfirmationBuilder().buildObject();
+//         subjectConfirmation.setMethod(SubjectConfirmation.METHOD_BEARER);
+//         subjectConfirmation.setSubjectConfirmationData(subjectConfirmationData);
+
+//         Subject subject = new SubjectBuilder().buildObject();
+//         subject.setNameID(nameID);
+//         subject.getSubjectConfirmations().add(subjectConfirmation);
+
+//         return subject;
+//     }
+
+//     private Conditions buildConditions(String spEntityId) {
+//         Conditions conditions = new ConditionsBuilder().buildObject();
+//         conditions.setNotBefore(DateTime.now(DateTimeZone.UTC));
+//         conditions.setNotOnOrAfter(DateTime.now(DateTimeZone.UTC).plusSeconds(300));
+
+//         Audience audience = new AudienceBuilder().buildObject();
+//         audience.setAudienceURI(spEntityId);
+
+//         AudienceRestriction audienceRestriction = new AudienceRestrictionBuilder().buildObject();
+//         audienceRestriction.getAudiences().add(audience);
+
+//         conditions.getAudienceRestrictions().add(audienceRestriction);
+//         return conditions;
+//     }
+
+//     private AttributeStatement buildAttributeStatement(String nameIdValue, AttributeArgument[] attributeArguments) {
+//         AttributeStatement attributeStatement = new AttributeStatementBuilder().buildObject();
+
+//         // Attribute attribute = new AttributeBuilder().buildObject();
+//         // attribute.setName("username");
+//         // attribute.setNameFormat(Attribute.URI_REFERENCE);
+
+//         // XSString attributeValue = new XSStringBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
+//         // attributeValue.setValue(nameIdValue);
+//         // attribute.getAttributeValues().add(attributeValue);
+
+//         // attributeStatement.getAttributes().add(attribute);
+
+//         for (AttributeArgument attributeArgument: attributeArguments) {
+//             Attribute attribute = new AttributeBuilder().buildObject();
+//             attribute.setName(attributeArgument.name);
+//             attribute.setNameFormat(Attribute.BASIC);
+    
+//             XSString attributeValue = new XSStringBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
+//             attributeValue.setValue(attributeArgument.value);
+//             attribute.getAttributeValues().add(attributeValue);
+
+//             attributeStatement.getAttributes().add(attribute);
+//         }
+
+//         return attributeStatement;
+//     }
+
+//     private AuthnStatement buildAuthnStatement() {
+//         AuthnStatement authnStatement = new AuthnStatementBuilder().buildObject();
+//         authnStatement.setAuthnInstant(DateTime.now(DateTimeZone.UTC));
+
+//         AuthnContext authnContext = new AuthnContextBuilder().buildObject();
+//         AuthnContextClassRef authnContextClassRef = new AuthnContextClassRefBuilder().buildObject();
+//         // TODO What to put here?
+//         authnContext.setAuthnContextClassRef(authnContextClassRef);
+
+//         authnStatement.setAuthnContext(authnContext);
+//         return authnStatement;
+//     }
+
+//     private String encodeResponse(XMLObject samlResponse) throws Exception {
+//         MarshallerFactory marshallerFactory = org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport.getMarshallerFactory();
+//         Marshaller marshaller = marshallerFactory.getMarshaller(samlResponse);
+        
+//         if (marshaller == null) {
+//             throw new RuntimeException("No marshaller found for SAML response");
+//         }
+
+//         Element element = marshaller.marshall(samlResponse);
+
+//         // Convert to String WITHOUT extra spaces/newlines
+//         String xmlString = SerializeSupport.nodeToString(element).replaceAll("&#13;", "");
+//         System.out.println("XML STRING AFTER REPLACE");
+//         System.out.println(xmlString);
+
+//         // Base64 encode the XML
+//         return Base64.getEncoder().encodeToString(xmlString.getBytes(StandardCharsets.UTF_8));
+//     }
+
+//     private static final String KEYSTORE_FILE = "src/main/resources/saml-idp-keystore.jks";
+//     private static final String KEYSTORE_PASSWORD = "changeit";
+//     private static final String KEY_ALIAS = "saml-idp";
+//     private static final String KEY_PASSWORD = "changeit";
+
+//     public static PrivateKey getPrivateKey() throws Exception {
+//         KeyStore keyStore = KeyStore.getInstance("JKS");
+//         keyStore.load(new FileInputStream(KEYSTORE_FILE), KEYSTORE_PASSWORD.toCharArray());
+//         return (PrivateKey) keyStore.getKey(KEY_ALIAS, KEY_PASSWORD.toCharArray());
+//     }
+
+//     public static X509Certificate getCertificate() throws Exception {
+//         KeyStore keyStore = KeyStore.getInstance("JKS");
+//         keyStore.load(new FileInputStream(KEYSTORE_FILE), KEYSTORE_PASSWORD.toCharArray());
+//         return (X509Certificate) keyStore.getCertificate(KEY_ALIAS);
+//     }
+
+//     private Element normalizeXML(String xmlString) throws Exception {
+//         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+//         factory.setNamespaceAware(true);
+//         DocumentBuilder builder = factory.newDocumentBuilder();
+        
+//         Document document = builder.parse(new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8)));
+//         return document.getDocumentElement();
+//     }
+
+//     private void signSAMLObject(SignableSAMLObject samlObject) throws Exception {
+//         PrivateKey privateKey = getPrivateKey();
+//         X509Certificate certificate = getCertificate();
+
+//         BasicX509Credential credential = new BasicX509Credential(certificate, privateKey);
+
+//         Signature signature = new SignatureBuilder().buildObject();
+//         signature.setSigningCredential(credential);
+//         signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA);
+//         signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+
+//         samlObject.setSignature(signature);
+
+//         MarshallerFactory marshallerFactory = XMLObjectProviderRegistrySupport.getMarshallerFactory();
+//         Marshaller marshaller = marshallerFactory.getMarshaller(samlObject);
+
+//         Element element = marshaller.marshall(samlObject);
+
+//         String xmlString = SerializeSupport.nodeToString(element);
+//         Element normalizedElement = normalizeXML(xmlString);
+
+//         // Perform XML Digital Signature
+//         Signer.signObject(signature);
+
+//         Element element2 = marshaller.marshall(samlObject);
+
+//         String xmlString2 = SerializeSupport.nodeToString(element2);
+//         Element normalizedElement2 = normalizeXML(xmlString2);
+
+//         // 🔍 Print XML after signing
+//         System.out.println("Final Signed XML:\n" + SerializeSupport.nodeToString(normalizedElement2));
+//     }
+
+//     private class NoWrapAutoEndDeflaterOutputStream extends DeflaterOutputStream {
+//         /**
+//          * Creates a new output stream with a default no-wrap compressor and buffer size,
+//          * and the specified compression level.
+//          *
+//          * @param os the output stream
+//          * @param level the compression level (0-9)
+//          */
+//         public NoWrapAutoEndDeflaterOutputStream(final OutputStream os, final int level) {
+//             super(os, new Deflater(level, true));
+//         }
+
+//         /** {@inheritDoc} */
+//         public void close() throws IOException {
+//             if (def != null) {
+//                 def.end();
+//             }
+//             super.close();
+//         }
+
+//     }
+
+//     public static class Arguments {
+//         public String assertionConsumerUrl;
+//         public String spEntityId;
+//         public String nameIdValue;
+//         public String idpEntityId;
+//         public AttributeArgument[] attributes;
+//     }
+
+//     public static class AttributeArgument {
+//         public String name;
+//         public String value;
+//     }
+// }
