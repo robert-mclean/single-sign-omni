@@ -3,30 +3,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import axios from "axios";
 import { useState } from "react";
-import {
-  TextField,
-  Card,
-  Container,
-  Typography,
-  Button,
-  Select,
-  MenuItem,
-} from "@mui/material";
+import { TextField, Card, Container, Typography, Button } from "@mui/material";
 
 const formSchema = z.object({
   assertionConsumerUrl: z.string().url("ACS be a valid URL"),
   spEntityId: z.string().min(3, "Service Provider Entity ID is required"),
   idpEntityId: z.string().min(3, "Service Provider Entity ID is required"),
   nameIdValue: z.string().min(3, "Name ID is required"),
-  attributes: z.string().transform((attibutesText) =>
-    attibutesText.split(";").map((attibuteText) => {
-      const pair = attibuteText.split("=");
-      return {
-        name: pair[0],
-        value: pair[1],
-      };
-    })
-  ),
+  attributes: z
+    .string()
+    .optional()
+    .transform((attibutesText) =>
+      attibutesText?.split(";").map((attibuteText) => {
+        const pair = attibuteText.split("=");
+        return {
+          name: pair[0],
+          value: pair[1],
+        };
+      })
+    ),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -44,7 +39,6 @@ const HomePage = () => {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
-      data.attributes = data.attributes || "";
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/generate`,
         data
@@ -95,6 +89,8 @@ const HomePage = () => {
                   variant="outlined"
                   fullWidth
                   margin="normal"
+                  error={!!errors.idpEntityId}
+                  helperText={errors.idpEntityId?.message}
                 />
               )}
             />
@@ -115,6 +111,8 @@ const HomePage = () => {
                   variant="outlined"
                   fullWidth
                   margin="normal"
+                  error={!!errors.assertionConsumerUrl}
+                  helperText={errors.assertionConsumerUrl?.message}
                 />
               )}
             />
@@ -130,6 +128,8 @@ const HomePage = () => {
                   variant="outlined"
                   fullWidth
                   margin="normal"
+                  error={!!errors.spEntityId}
+                  helperText={errors.spEntityId?.message}
                 />
               )}
             />
@@ -150,6 +150,8 @@ const HomePage = () => {
                   variant="outlined"
                   fullWidth
                   margin="normal"
+                  error={!!errors.nameIdValue}
+                  helperText={errors.nameIdValue?.message}
                 />
               )}
             />
@@ -165,6 +167,8 @@ const HomePage = () => {
                   multiline
                   minRows="2"
                   margin="normal"
+                  error={!!errors.attributes}
+                  helperText={errors.attributes?.message}
                 />
               )}
             />
