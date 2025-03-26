@@ -1,21 +1,21 @@
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import axios from "axios";
-import { useState } from "react";
-import { TextField, Card, Container, Typography, Button } from "@mui/material";
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import axios from 'axios';
+import { useState } from 'react';
+import { TextField, Card, Container, Typography, Button } from '@mui/material';
 
 const formSchema = z.object({
-  assertionConsumerUrl: z.string().url("ACS be a valid URL"),
-  spEntityId: z.string().min(3, "Service Provider Entity ID is required"),
-  idpEntityId: z.string().min(3, "Service Provider Entity ID is required"),
-  nameIdValue: z.string().min(3, "Name ID is required"),
+  assertionConsumerUrl: z.string().url('ACS be a valid URL'),
+  spEntityId: z.string().min(3, 'Service Provider Entity ID is required'),
+  idpEntityId: z.string().min(3, 'Service Provider Entity ID is required'),
+  nameIdValue: z.string().min(3, 'Name ID is required'),
   attributes: z
     .string()
     .optional()
     .transform((attibutesText) =>
-      attibutesText?.split(";").map((attibuteText) => {
-        const pair = attibuteText.split("=");
+      attibutesText?.split(';').map((attibuteText) => {
+        const pair = attibuteText.split('=');
         return {
           name: pair[0],
           value: pair[1],
@@ -39,6 +39,7 @@ const HomePage = () => {
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
+      console.log('URL = ', import.meta.env);
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/generate`,
         data
@@ -47,23 +48,23 @@ const HomePage = () => {
       console.log(response);
 
       if (response.data && response.data) {
-        const form = document.createElement("form");
-        form.method = "POST";
+        const form = document.createElement('form');
+        form.method = 'POST';
         form.action = data.assertionConsumerUrl;
 
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = "SAMLResponse";
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'SAMLResponse';
         input.value = response.data;
 
         form.appendChild(input);
         document.body.appendChild(form);
         form.submit();
       } else {
-        console.error("Invalid response from server");
+        console.error('Invalid response from server');
       }
     } catch (error) {
-      console.error("Error generating SAML response:", error);
+      console.error('Error generating SAML response:', error);
     } finally {
       setLoading(false);
     }
@@ -176,7 +177,7 @@ const HomePage = () => {
         </Card>
         <Container>
           <Button type="submit" variant="contained" disabled={loading}>
-            {loading ? "Submitting..." : "Generate SAML Response"}
+            {loading ? 'Submitting...' : 'Generate SAML Response'}
           </Button>
         </Container>
       </form>
