@@ -10,17 +10,19 @@ const formSchema = z.object({
   spEntityId: z.string().min(3, 'Service Provider Entity ID is required'),
   idpEntityId: z.string().min(3, 'Service Provider Entity ID is required'),
   nameIdValue: z.string().min(3, 'Name ID is required'),
+  relayState: z.string().optional(),
   attributes: z
     .string()
     .optional()
-    .transform((attibutesText) =>
-      attibutesText?.split(';').map((attibuteText) => {
-        const pair = attibuteText.split('=');
-        return {
-          name: pair[0],
-          value: pair[1],
-        };
-      })
+    .transform(
+      (attibutesText) =>
+        attibutesText?.split(';').map((attibuteText) => {
+          const pair = attibuteText.split('=');
+          return {
+            name: pair[0],
+            value: pair[1],
+          };
+        }) || []
     ),
 });
 
@@ -52,12 +54,20 @@ const HomePage = () => {
         form.method = 'POST';
         form.action = data.assertionConsumerUrl;
 
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'SAMLResponse';
-        input.value = response.data;
+        const samlInput = document.createElement('input');
+        samlInput.type = 'hidden';
+        samlInput.name = 'SAMLResponse';
+        samlInput.value = response.data;
+        form.appendChild(samlInput);
 
-        form.appendChild(input);
+        if (data.relayState) {
+          const relayStateInput = document.createElement('input');
+          relayStateInput.type = 'hidden';
+          relayStateInput.name = 'RelayState';
+          relayStateInput.value = data.relayState;
+          form.appendChild(relayStateInput);
+        }
+
         document.body.appendChild(form);
         form.submit();
       } else {
@@ -175,6 +185,21 @@ const HomePage = () => {
             />
           </Container>
         </Card>
+        <Controller
+          name="relayState"
+          control={control}
+          render={({ field }) => (
+            <TextField
+              {...field}
+              label="RelayState"
+              variant="outlined"
+              fullWidth
+              margin="normal"
+              error={!!errors.relayState}
+              helperText={errors.relayState?.message}
+            />
+          )}
+        />
         <Container>
           <Button type="submit" variant="contained" disabled={loading}>
             {loading ? 'Submitting...' : 'Generate SAML Response'}
