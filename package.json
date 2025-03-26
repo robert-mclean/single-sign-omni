@@ -8,7 +8,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "build:api": "cd api && ./mvnw clean package && docker build -t single-sign-omni-api ."
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

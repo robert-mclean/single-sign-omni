@@ -11,8 +11,8 @@
 	<groupId>com.singlesignomni</groupId>
 	<artifactId>api</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>SingleSignOmni Web API</name>
-	<description>Web API for SignleSignOmni</description>
+	<name>SingleSignOmni API</name>
+	<description>API for SingleSignOmni</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -102,6 +102,12 @@
 			<groupId>javax.annotation</groupId>
 			<artifactId>javax.annotation-api</artifactId>
 			<version>1.3.2</version>
+		</dependency>
+		<dependency>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+			<version>6.1.0</version>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 
